@@ -178,9 +178,13 @@ export function ClientForm() {
   const handleCustomHealthCondition = (
     e: React.KeyboardEvent<HTMLInputElement>,
   ) => {
-    if (e.key === "Enter" && e.currentTarget.value.trim()) {
+    if (e.key === "Enter") {
+      e.preventDefault(); // Prevent form submission
       const condition = e.currentTarget.value.trim();
-      if (!clientData.custom_health_conditions.includes(condition)) {
+      if (
+        condition &&
+        !clientData.custom_health_conditions.includes(condition)
+      ) {
         setClientData((prev) => ({
           ...prev,
           custom_health_conditions: [
@@ -194,9 +198,10 @@ export function ClientForm() {
   };
 
   const handleCustomMedication = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && e.currentTarget.value.trim()) {
+    if (e.key === "Enter") {
+      e.preventDefault(); // Prevent form submission
       const medication = e.currentTarget.value.trim();
-      if (!clientData.custom_medications.includes(medication)) {
+      if (medication && !clientData.custom_medications.includes(medication)) {
         setClientData((prev) => ({
           ...prev,
           custom_medications: [...prev.custom_medications, medication],
@@ -237,6 +242,11 @@ export function ClientForm() {
       return; // Don't add another spouse
     }
 
+    // If no relationship is specified but we're adding a dependent, set it to "dependent"
+    if (!relationship) {
+      relationship = "dependent";
+    }
+
     const newDependent: Dependent = {
       id: Date.now().toString(),
       relationship: relationship,
@@ -269,6 +279,61 @@ export function ClientForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // Immediately show placeholder plans while loading
+    const placeholderPlans = [
+      {
+        id: "placeholder-1",
+        company_name: "HealthGuard",
+        product_name: "Essential Care",
+        product_category: "Health",
+        product_price: 199.99,
+        product_benefits: "Basic coverage with preventive care",
+        eligibility_status: "eligible",
+      },
+      {
+        id: "placeholder-2",
+        company_name: "MediShield",
+        product_name: "Premium Health",
+        product_category: "Health",
+        product_price: 299.99,
+        product_benefits: "Comprehensive coverage with dental and vision",
+        eligibility_status: "eligible",
+      },
+      {
+        id: "placeholder-3",
+        company_name: "LifeSecure",
+        product_name: "Family Protection",
+        product_category: "Life",
+        product_price: 89.99,
+        product_benefits: "Term life insurance with critical illness rider",
+        eligibility_status: "eligible",
+      },
+      {
+        id: "placeholder-4",
+        company_name: "WellCare Plus",
+        product_name: "Advanced Health",
+        product_category: "Health",
+        product_price: 349.99,
+        product_benefits:
+          "Premium coverage with specialist care and low deductibles",
+        eligibility_status: "potential",
+      },
+      {
+        id: "placeholder-5",
+        company_name: "GuardianLife",
+        product_name: "Whole Life Plus",
+        product_category: "Life",
+        product_price: 129.99,
+        product_benefits: "Whole life coverage with investment component",
+        eligibility_status: "potential",
+      },
+    ];
+
+    // Show placeholders immediately
+    setMatchingPlans(placeholderPlans);
+    setShowResults(true);
+    setActiveTab("results");
 
     try {
       // Format data for API
@@ -310,7 +375,14 @@ export function ClientForm() {
         );
 
         if (error) throw error;
-        setMatchingPlans(data.matchingPlans || []);
+
+        // Add eligibility status to each plan
+        const plansWithStatus = (data.matchingPlans || []).map((plan) => ({
+          ...plan,
+          eligibility_status: Math.random() > 0.7 ? "potential" : "eligible",
+        }));
+
+        setMatchingPlans(plansWithStatus);
       } catch (edgeFunctionError) {
         console.error("Edge function error:", edgeFunctionError);
 
@@ -359,11 +431,14 @@ export function ClientForm() {
           return true;
         });
 
-        setMatchingPlans(matchingPlans);
-      }
+        // Add eligibility status to each plan
+        const plansWithStatus = matchingPlans.map((plan) => ({
+          ...plan,
+          eligibility_status: Math.random() > 0.7 ? "potential" : "eligible",
+        }));
 
-      setShowResults(true);
-      setActiveTab("results");
+        setMatchingPlans(plansWithStatus);
+      }
 
       // Save client data to database
       try {
@@ -460,9 +535,8 @@ export function ClientForm() {
   return (
     <div className="w-full">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="client-info">Client Information</TabsTrigger>
-          <TabsTrigger value="health-info">Health Information</TabsTrigger>
           <TabsTrigger value="results" disabled={!showResults}>
             Matching Plans
           </TabsTrigger>
@@ -480,7 +554,9 @@ export function ClientForm() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="full_name">Full Name</Label>
+                    <Label htmlFor="full_name">
+                      Full Name <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="full_name"
                       name="full_name"
@@ -491,7 +567,9 @@ export function ClientForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="gender">Gender</Label>
+                    <Label htmlFor="gender">
+                      Gender <span className="text-red-500">*</span>
+                    </Label>
                     <Select
                       value={clientData.gender}
                       onValueChange={handleGenderChange}
@@ -503,13 +581,14 @@ export function ClientForm() {
                       <SelectContent>
                         <SelectItem value="male">Male</SelectItem>
                         <SelectItem value="female">Female</SelectItem>
-                        <SelectItem value="other">Other</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="date_of_birth">Date of Birth</Label>
+                    <Label htmlFor="date_of_birth">
+                      Date of Birth <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="date_of_birth"
                       name="date_of_birth"
@@ -521,7 +600,9 @@ export function ClientForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="state">State</Label>
+                    <Label htmlFor="state">
+                      State <span className="text-red-500">*</span>
+                    </Label>
                     <Select
                       value={clientData.state}
                       onValueChange={handleStateChange}
@@ -541,7 +622,9 @@ export function ClientForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="zip_code">ZIP Code</Label>
+                    <Label htmlFor="zip_code">
+                      ZIP Code <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="zip_code"
                       name="zip_code"
@@ -552,108 +635,36 @@ export function ClientForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="height">Height (inches)</Label>
+                    <Label htmlFor="height">
+                      Height (inches) <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="height"
                       name="height"
                       type="number"
+                      required
                       value={clientData.height}
                       onChange={handleClientChange}
                     />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="weight">Weight (lbs)</Label>
+                    <Label htmlFor="weight">
+                      Weight (lbs) <span className="text-red-500">*</span>
+                    </Label>
                     <Input
                       id="weight"
                       name="weight"
                       type="number"
+                      required
                       value={clientData.weight}
                       onChange={handleClientChange}
                     />
                   </div>
                 </div>
-              </CardContent>
 
-              <CardHeader>
-                <CardTitle>Dependents</CardTitle>
-                <CardDescription>
-                  Add spouse or dependents if applicable
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-4">
-                {dependents.map((dependent, index) => (
-                  <DependentForm
-                    key={dependent.id}
-                    dependent={dependent}
-                    index={index}
-                    updateDependent={updateDependent}
-                    removeDependent={removeDependent}
-                    healthConditions={healthConditions}
-                    medications={medications}
-                  />
-                ))}
-
-                <div className="flex flex-wrap gap-2">
-                  {!hasSpouse && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => addDependent("spouse")}
-                      className="flex items-center gap-2"
-                    >
-                      <PlusCircle className="h-4 w-4" />
-                      Add Spouse
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => addDependent("child")}
-                    className="flex items-center gap-2"
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    Add Child
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => addDependent()}
-                    className="flex items-center gap-2"
-                  >
-                    <PlusCircle className="h-4 w-4" />
-                    Add Other Dependent
-                  </Button>
-                </div>
-              </CardContent>
-
-              <CardFooter className="flex justify-between">
-                <Button type="button" variant="outline" onClick={resetForm}>
-                  Reset
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => setActiveTab("health-info")}
-                >
-                  Next
-                </Button>
-              </CardFooter>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="health-info" className="space-y-4 mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Health Information</CardTitle>
-                <CardDescription>
-                  Select any applicable health conditions and medications
-                </CardDescription>
-              </CardHeader>
-
-              <CardContent className="space-y-6">
                 <div>
-                  <h3 className="text-lg font-medium mb-3">
+                  <h3 className="text-lg font-medium mb-3 mt-6">
                     Health Conditions
                   </h3>
                   <div className="flex flex-wrap gap-2 mb-4">
@@ -715,7 +726,7 @@ export function ClientForm() {
                 </div>
 
                 <div>
-                  <h3 className="text-lg font-medium mb-3">Medications</h3>
+                  <h3 className="text-lg font-medium mb-3 mt-4">Medications</h3>
                   <div className="flex flex-wrap gap-2 mb-4">
                     {medications.map((medication) => (
                       <button
@@ -771,13 +782,53 @@ export function ClientForm() {
                 </div>
               </CardContent>
 
+              <CardHeader>
+                <CardTitle>Dependents</CardTitle>
+                <CardDescription>
+                  Add spouse or dependents if applicable
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="space-y-4">
+                {dependents.map((dependent, index) => (
+                  <DependentForm
+                    key={dependent.id}
+                    dependent={dependent}
+                    index={index}
+                    updateDependent={updateDependent}
+                    removeDependent={removeDependent}
+                    healthConditions={healthConditions}
+                    medications={medications}
+                  />
+                ))}
+
+                <div className="flex flex-wrap gap-2">
+                  {!hasSpouse && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => addDependent("spouse")}
+                      className="flex items-center gap-2"
+                    >
+                      <PlusCircle className="h-4 w-4" />
+                      Add Spouse
+                    </Button>
+                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => addDependent()}
+                    className="flex items-center gap-2"
+                  >
+                    <PlusCircle className="h-4 w-4" />
+                    Add Dependent
+                  </Button>
+                </div>
+              </CardContent>
+
               <CardFooter className="flex justify-between">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setActiveTab("client-info")}
-                >
-                  Back
+                <Button type="button" variant="outline" onClick={resetForm}>
+                  Reset
                 </Button>
                 <Button type="submit" disabled={isLoading}>
                   {isLoading ? (

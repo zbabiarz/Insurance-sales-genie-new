@@ -96,7 +96,10 @@ export function DependentForm({
             </Button>
           </CollapsibleTrigger>
           <h3 className="text-md font-medium">
-            {dependent.full_name || `Dependent ${index + 1}`}
+            {dependent.full_name ||
+              (dependent.relationship === "spouse"
+                ? "Spouse"
+                : `Dependent ${index + 1}`)}
           </h3>
         </div>
         <Button
@@ -114,7 +117,7 @@ export function DependentForm({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
             <div className="space-y-2">
               <Label htmlFor={`relationship-${dependent.id}`}>
-                Relationship
+                Relationship <span className="text-red-500">*</span>
               </Label>
               <Select
                 value={dependent.relationship}
@@ -134,7 +137,9 @@ export function DependentForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={`full_name-${dependent.id}`}>Full Name</Label>
+              <Label htmlFor={`full_name-${dependent.id}`}>
+                Full Name <span className="text-red-500">*</span>
+              </Label>
               <Input
                 id={`full_name-${dependent.id}`}
                 name="full_name"
@@ -145,7 +150,9 @@ export function DependentForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={`gender-${dependent.id}`}>Gender</Label>
+              <Label htmlFor={`gender-${dependent.id}`}>
+                Gender <span className="text-red-500">*</span>
+              </Label>
               <Select
                 value={dependent.gender}
                 onValueChange={(value) =>
@@ -159,14 +166,13 @@ export function DependentForm({
                 <SelectContent>
                   <SelectItem value="male">Male</SelectItem>
                   <SelectItem value="female">Female</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
               <Label htmlFor={`date_of_birth-${dependent.id}`}>
-                Date of Birth
+                Date of Birth <span className="text-red-500">*</span>
               </Label>
               <Input
                 id={`date_of_birth-${dependent.id}`}
@@ -181,7 +187,7 @@ export function DependentForm({
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-2">
                 <Label htmlFor={`height-${dependent.id}`}>
-                  Height (inches)
+                  Height (inches) <span className="text-red-500">*</span>
                 </Label>
                 <Input
                   id={`height-${dependent.id}`}
@@ -189,17 +195,21 @@ export function DependentForm({
                   type="number"
                   value={dependent.height}
                   onChange={handleChange}
+                  required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor={`weight-${dependent.id}`}>Weight (lbs)</Label>
+                <Label htmlFor={`weight-${dependent.id}`}>
+                  Weight (lbs) <span className="text-red-500">*</span>
+                </Label>
                 <Input
                   id={`weight-${dependent.id}`}
                   name="weight"
                   type="number"
                   value={dependent.weight}
                   onChange={handleChange}
+                  required
                 />
               </div>
             </div>
@@ -238,9 +248,11 @@ export function DependentForm({
                   size={3}
                   className="text-sm"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                    if (e.key === "Enter") {
+                      e.preventDefault(); // Prevent form submission
                       const condition = e.currentTarget.value.trim();
                       if (
+                        condition &&
                         !dependent.custom_health_conditions.includes(condition)
                       ) {
                         updateDependent(dependent.id, {
@@ -318,9 +330,13 @@ export function DependentForm({
                   size={3}
                   className="text-sm"
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && e.currentTarget.value.trim()) {
+                    if (e.key === "Enter") {
+                      e.preventDefault(); // Prevent form submission
                       const medication = e.currentTarget.value.trim();
-                      if (!dependent.custom_medications.includes(medication)) {
+                      if (
+                        medication &&
+                        !dependent.custom_medications.includes(medication)
+                      ) {
                         updateDependent(dependent.id, {
                           custom_medications: [
                             ...dependent.custom_medications,

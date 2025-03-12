@@ -41,6 +41,12 @@ export function AIChat() {
     setInput("");
     setIsLoading(true);
 
+    // Add a temporary thinking message from the assistant
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant" as const, content: "" },
+    ]);
+
     // Log activity for time saved tracking
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -93,37 +99,89 @@ export function AIChat() {
 
         if (apiResponse.ok) {
           const data = await apiResponse.json();
-          setMessages((prev) => [
-            ...prev,
-            { role: "assistant", content: data.response },
-          ]);
+          // Replace the temporary thinking message with the actual response
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            if (
+              newMessages.length > 0 &&
+              newMessages[newMessages.length - 1].role === "assistant"
+            ) {
+              newMessages[newMessages.length - 1] = {
+                role: "assistant",
+                content: data.response,
+              };
+              return newMessages;
+            } else {
+              return [...prev, { role: "assistant", content: data.response }];
+            }
+          });
         } else {
           // If API call fails, fall back to rule-based approach
           const response = await processQuery(userMessage.content, context);
-          setMessages((prev) => [
-            ...prev,
-            { role: "assistant", content: response },
-          ]);
+          // Replace the temporary thinking message with the actual response
+          setMessages((prev) => {
+            const newMessages = [...prev];
+            if (
+              newMessages.length > 0 &&
+              newMessages[newMessages.length - 1].role === "assistant"
+            ) {
+              newMessages[newMessages.length - 1] = {
+                role: "assistant",
+                content: response,
+              };
+              return newMessages;
+            } else {
+              return [...prev, { role: "assistant", content: response }];
+            }
+          });
         }
       } catch (apiError) {
         console.error("Error calling OpenAI API:", apiError);
         // Fall back to rule-based approach
         const response = await processQuery(userMessage.content, context);
-        setMessages((prev) => [
-          ...prev,
-          { role: "assistant", content: response },
-        ]);
+        // Replace the temporary thinking message with the actual response
+        setMessages((prev) => {
+          const newMessages = [...prev];
+          if (
+            newMessages.length > 0 &&
+            newMessages[newMessages.length - 1].role === "assistant"
+          ) {
+            newMessages[newMessages.length - 1] = {
+              role: "assistant",
+              content: response,
+            };
+            return newMessages;
+          } else {
+            return [...prev, { role: "assistant", content: response }];
+          }
+        });
       }
     } catch (error) {
       console.error("Error processing query:", error);
-      setMessages((prev) => [
-        ...prev,
-        {
-          role: "assistant",
-          content:
-            "I'm sorry, I encountered an error while processing your request. Please try again.",
-        },
-      ]);
+      // Replace the temporary thinking message with the error message
+      setMessages((prev) => {
+        const newMessages = [...prev];
+        if (
+          newMessages.length > 0 &&
+          newMessages[newMessages.length - 1].role === "assistant"
+        ) {
+          newMessages[newMessages.length - 1] = {
+            role: "assistant",
+            content:
+              "I'm sorry, I encountered an error while processing your request. Please try again.",
+          };
+          return newMessages;
+        } else {
+          return [
+            ...prev,
+            {
+              role: "assistant",
+              content:
+                "I'm sorry, I encountered an error while processing your request. Please try again.",
+            },
+          ];
+        }
+      });
     } finally {
       setIsLoading(false);
     }
@@ -418,9 +476,22 @@ export function AIChat() {
                   <div
                     className={`${message.role === "user" ? "bg-teal-600 text-white p-3 rounded-lg" : ""} break-words`}
                   >
-                    {message.content.split("\n").map((line, i) => (
-                      <div key={i}>{line}</div>
-                    ))}
+                    {message.role === "assistant" &&
+                    isLoading &&
+                    index === messages.length - 1 ? (
+                      <div className="flex items-center">
+                        <span>Thinking</span>
+                        <span className="flex ml-2">
+                          <span className="animate-bounce mx-0.5 h-1 w-1 rounded-full bg-current"></span>
+                          <span className="animate-bounce animation-delay-200 mx-0.5 h-1 w-1 rounded-full bg-current"></span>
+                          <span className="animate-bounce animation-delay-400 mx-0.5 h-1 w-1 rounded-full bg-current"></span>
+                        </span>
+                      </div>
+                    ) : (
+                      message.content
+                        .split("\n")
+                        .map((line, i) => <div key={i}>{line}</div>)
+                    )}
                   </div>
                 </div>
                 {message.role === "user" && (
@@ -447,7 +518,14 @@ export function AIChat() {
             className="bg-teal-600 hover:bg-teal-700 flex-shrink-0"
           >
             {isLoading ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <div className="flex items-center">
+                <span className="mr-2 text-xs font-medium">Thinking</span>
+                <span className="flex">
+                  <span className="animate-bounce mx-0.5 h-1 w-1 rounded-full bg-current"></span>
+                  <span className="animate-bounce animation-delay-200 mx-0.5 h-1 w-1 rounded-full bg-current"></span>
+                  <span className="animate-bounce animation-delay-400 mx-0.5 h-1 w-1 rounded-full bg-current"></span>
+                </span>
+              </div>
             ) : (
               <Send className="h-4 w-4" />
             )}
