@@ -50,11 +50,11 @@ export default async function Dashboard() {
           <DashboardStats />
 
           {/* Main Content Tabs */}
-          <Tabs defaultValue="clients" className="w-full">
+          <Tabs defaultValue="ai" className="w-full">
             <TabsList className="grid w-full grid-cols-4 mb-8">
-              <TabsTrigger value="clients" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                <span>Clients</span>
+              <TabsTrigger value="ai" className="flex items-center gap-2">
+                <BrainCircuit className="h-4 w-4" />
+                <span>AI Assistant</span>
               </TabsTrigger>
               <TabsTrigger value="intake" className="flex items-center gap-2">
                 <ClipboardCheck className="h-4 w-4" />
@@ -64,24 +64,28 @@ export default async function Dashboard() {
                 <MessageSquareText className="h-4 w-4" />
                 <span>Sales Calls</span>
               </TabsTrigger>
-              <TabsTrigger value="ai" className="flex items-center gap-2">
-                <BrainCircuit className="h-4 w-4" />
-                <span>AI Assistant</span>
+              <TabsTrigger value="clients" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                <span>Clients</span>
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="clients">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Client Management</CardTitle>
-                  <CardDescription>
-                    View and manage your insurance clients
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ClientManagement />
-                </CardContent>
-              </Card>
+            <TabsContent value="ai">
+              <div className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>AI Chatbot Assistant</CardTitle>
+                    <CardDescription>
+                      Get real-time product information and recommendations
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+
+                {/* AI Chat Component */}
+                <div className="h-[500px]">
+                  <AIChat />
+                </div>
+              </div>
             </TabsContent>
 
             <TabsContent value="intake">
@@ -120,22 +124,18 @@ export default async function Dashboard() {
               </div>
             </TabsContent>
 
-            <TabsContent value="ai">
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle>AI Chatbot Assistant</CardTitle>
-                    <CardDescription>
-                      Get real-time product information and recommendations
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-
-                {/* AI Chat Component */}
-                <div className="h-[500px]">
-                  <AIChat />
-                </div>
-              </div>
+            <TabsContent value="clients">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Client Management</CardTitle>
+                  <CardDescription>
+                    View and manage your insurance clients
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ClientManagement />
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>

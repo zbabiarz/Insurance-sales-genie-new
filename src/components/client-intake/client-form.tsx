@@ -38,6 +38,7 @@ interface Dependent {
   medications: string[];
   custom_health_conditions: string[];
   custom_medications: string[];
+  _calculatedDob?: string;
 }
 
 const US_STATES = [
@@ -104,13 +105,14 @@ export function ClientForm() {
   >([]);
   const [isLoading, setIsLoading] = useState(false);
   const [matchingPlans, setMatchingPlans] = useState<any[]>([]);
+  const [useAgeInput, setUseAgeInput] = useState(false);
 
   // Client form state
   const [clientData, setClientData] = useState({
     full_name: "",
     gender: "",
     date_of_birth: "",
-    zip_code: "",
+    _calculatedDob: "",
     state: "",
     height: "",
     weight: "",
@@ -335,10 +337,32 @@ export function ClientForm() {
     setShowResults(true);
     setActiveTab("results");
 
+    // Check if a client with the same name already exists to prevent duplicates
+    let existingClient = false;
+    try {
+      const { data: user } = await supabase.auth.getUser();
+      const userId = user.user?.id;
+
+      if (userId) {
+        const { data: existingClients } = await supabase
+          .from("clients")
+          .select("id")
+          .eq("user_id", userId)
+          .eq("full_name", clientData.full_name);
+
+        existingClient = existingClients && existingClients.length > 0;
+      }
+    } catch (error) {
+      console.error("Error checking for existing client:", error);
+    }
+
     try {
       // Format data for API
       const formattedData = {
         ...clientData,
+        // Use the calculated DOB if in age mode, otherwise use the entered DOB
+        date_of_birth:
+          clientData.date_of_birth || clientData._calculatedDob || "",
         height: clientData.height ? parseFloat(clientData.height) : undefined,
         weight: clientData.weight ? parseFloat(clientData.weight) : undefined,
         // Combine standard and custom health conditions/medications
@@ -354,7 +378,8 @@ export function ClientForm() {
           relationship: dep.relationship,
           full_name: dep.full_name,
           gender: dep.gender,
-          date_of_birth: dep.date_of_birth,
+          // Use the calculated DOB if in age mode, otherwise use the entered DOB
+          date_of_birth: dep.date_of_birth || dep._calculatedDob || "",
           height: dep.height ? parseFloat(dep.height) : undefined,
           weight: dep.weight ? parseFloat(dep.weight) : undefined,
           health_conditions: [
@@ -440,36 +465,44 @@ export function ClientForm() {
         setMatchingPlans(plansWithStatus);
       }
 
-      // Save client data to database
+      // Save client data to database only if it doesn't already exist
       try {
         const { data: user } = await supabase.auth.getUser();
         const userId = user.user?.id;
 
-        const { data: clientRecord, error: clientError } = await supabase
-          .from("clients")
-          .insert({
-            user_id: userId,
-            full_name: clientData.full_name,
-            gender: clientData.gender,
-            date_of_birth: clientData.date_of_birth,
-            zip_code: clientData.zip_code,
-            state: clientData.state,
-            height: clientData.height ? parseFloat(clientData.height) : null,
-            weight: clientData.weight ? parseFloat(clientData.weight) : null,
-            health_conditions: [
-              ...clientData.health_conditions,
-              ...clientData.custom_health_conditions,
-            ],
-            medications: [
-              ...clientData.medications,
-              ...clientData.custom_medications,
-            ],
-          })
-          .select()
-          .single();
+        // Skip client creation if it already exists
+        let clientRecord = null;
+        if (!existingClient && userId) {
+          const { data: newClientRecord, error: clientError } = await supabase
+            .from("clients")
+            .insert({
+              user_id: userId,
+              full_name: clientData.full_name,
+              gender: clientData.gender,
+              date_of_birth:
+                clientData.date_of_birth || clientData._calculatedDob || "",
+              state: clientData.state,
+              zip_code: "00000", // Default value since we removed the field
+              height: clientData.height ? parseFloat(clientData.height) : null,
+              weight: clientData.weight ? parseFloat(clientData.weight) : null,
+              health_conditions: [
+                ...clientData.health_conditions,
+                ...clientData.custom_health_conditions,
+              ],
+              medications: [
+                ...clientData.medications,
+                ...clientData.custom_medications,
+              ],
+            })
+            .select()
+            .single();
+
+          if (clientError) throw clientError;
+          clientRecord = newClientRecord;
+        }
 
         // Log activity for time saved tracking
-        if (userId) {
+        if (userId && clientRecord) {
           await supabase.from("user_activity").insert({
             user_id: userId,
             activity_type: "client_intake",
@@ -477,16 +510,14 @@ export function ClientForm() {
           });
         }
 
-        if (clientError) throw clientError;
-
-        // Save dependents if any
+        // Save dependents if any and if we have a client record
         if (dependents.length > 0 && clientRecord) {
           const dependentsToInsert = dependents.map((dep) => ({
             client_id: clientRecord.id,
             relationship: dep.relationship,
             full_name: dep.full_name,
             gender: dep.gender,
-            date_of_birth: dep.date_of_birth,
+            date_of_birth: dep.date_of_birth || dep._calculatedDob || "",
             height: dep.height ? parseFloat(dep.height) : null,
             weight: dep.weight ? parseFloat(dep.weight) : null,
             health_conditions: [
@@ -501,6 +532,11 @@ export function ClientForm() {
             .insert(dependentsToInsert);
 
           if (dependentsError) throw dependentsError;
+        }
+
+        // Show a message if client already exists
+        if (existingClient) {
+          console.log("Client already exists, skipped creating duplicate");
         }
       } catch (dbError) {
         console.error("Error saving client data:", dbError);
@@ -518,7 +554,7 @@ export function ClientForm() {
       full_name: "",
       gender: "",
       date_of_birth: "",
-      zip_code: "",
+      _calculatedDob: "",
       state: "",
       height: "",
       weight: "",
@@ -530,6 +566,7 @@ export function ClientForm() {
     setDependents([]);
     setShowResults(false);
     setActiveTab("client-info");
+    setUseAgeInput(false);
   };
 
   return (
@@ -586,17 +623,68 @@ export function ClientForm() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="date_of_birth">
-                      Date of Birth <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="date_of_birth"
-                      name="date_of_birth"
-                      type="date"
-                      value={clientData.date_of_birth}
-                      onChange={handleClientChange}
-                      required
-                    />
+                    <div className="flex justify-between">
+                      <Label htmlFor="date_of_birth">
+                        Date of Birth / Age{" "}
+                        <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="flex items-center space-x-2">
+                        <Label
+                          htmlFor="use_age"
+                          className="text-xs cursor-pointer"
+                        >
+                          Use Age
+                        </Label>
+                        <input
+                          type="checkbox"
+                          id="use_age"
+                          className="h-4 w-4"
+                          checked={useAgeInput}
+                          onChange={() => setUseAgeInput(!useAgeInput)}
+                        />
+                      </div>
+                    </div>
+                    {!useAgeInput ? (
+                      <Input
+                        id="date_of_birth"
+                        name="date_of_birth"
+                        type="date"
+                        value={clientData.date_of_birth}
+                        onChange={handleClientChange}
+                        required
+                      />
+                    ) : (
+                      <Input
+                        id="age"
+                        name="age"
+                        type="number"
+                        placeholder="Enter age"
+                        min="0"
+                        max="120"
+                        onChange={(e) => {
+                          const age = parseInt(e.target.value);
+                          if (!isNaN(age)) {
+                            // Calculate DOB based on age but store it in a hidden field
+                            const today = new Date();
+                            const birthYear = today.getFullYear() - age;
+                            const dob = new Date(
+                              birthYear,
+                              today.getMonth(),
+                              today.getDate(),
+                            );
+                            // Store the calculated date but keep the checkbox in age mode
+                            const dobString = dob.toISOString().split("T")[0];
+                            setClientData((prev) => ({
+                              ...prev,
+                              date_of_birth: "", // Keep this empty to maintain age mode
+                              // Store the actual DOB in a hidden field that will be used for submission
+                              _calculatedDob: dobString,
+                            }));
+                          }
+                        }}
+                        required
+                      />
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -619,19 +707,6 @@ export function ClientForm() {
                         ))}
                       </SelectContent>
                     </Select>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="zip_code">
-                      ZIP Code <span className="text-red-500">*</span>
-                    </Label>
-                    <Input
-                      id="zip_code"
-                      name="zip_code"
-                      value={clientData.zip_code}
-                      onChange={handleClientChange}
-                      required
-                    />
                   </div>
 
                   <div className="space-y-2">
@@ -863,7 +938,7 @@ export function ClientForm() {
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => setActiveTab("health-info")}
+                  onClick={() => setActiveTab("client-info")}
                 >
                   Back
                 </Button>

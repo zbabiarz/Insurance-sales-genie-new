@@ -171,17 +171,73 @@ export function DependentForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor={`date_of_birth-${dependent.id}`}>
-                Date of Birth <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id={`date_of_birth-${dependent.id}`}
-                name="date_of_birth"
-                type="date"
-                value={dependent.date_of_birth}
-                onChange={handleChange}
-                required
-              />
+              <div className="flex justify-between">
+                <Label htmlFor={`date_of_birth-${dependent.id}`}>
+                  Date of Birth / Age <span className="text-red-500">*</span>
+                </Label>
+                <div className="flex items-center space-x-2">
+                  <Label
+                    htmlFor={`use_age-${dependent.id}`}
+                    className="text-xs cursor-pointer"
+                  >
+                    Use Age
+                  </Label>
+                  <input
+                    type="checkbox"
+                    id={`use_age-${dependent.id}`}
+                    className="h-4 w-4"
+                    checked={!dependent.date_of_birth}
+                    onChange={() => {
+                      if (dependent.date_of_birth) {
+                        updateDependent(dependent.id, { date_of_birth: "" });
+                      } else {
+                        // Set a default date if switching back to DOB
+                        updateDependent(dependent.id, {
+                          date_of_birth: new Date().toISOString().split("T")[0],
+                        });
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+              {dependent.date_of_birth ? (
+                <Input
+                  id={`date_of_birth-${dependent.id}`}
+                  name="date_of_birth"
+                  type="date"
+                  value={dependent.date_of_birth}
+                  onChange={handleChange}
+                  required
+                />
+              ) : (
+                <Input
+                  id={`age-${dependent.id}`}
+                  name="age"
+                  type="number"
+                  placeholder="Enter age"
+                  min="0"
+                  max="120"
+                  onChange={(e) => {
+                    const age = parseInt(e.target.value);
+                    if (!isNaN(age)) {
+                      // Calculate DOB based on age
+                      const today = new Date();
+                      const birthYear = today.getFullYear() - age;
+                      const dob = new Date(
+                        birthYear,
+                        today.getMonth(),
+                        today.getDate(),
+                      );
+                      // Store the calculated date in a hidden field but keep age mode active
+                      updateDependent(dependent.id, {
+                        date_of_birth: "", // Keep empty to maintain age mode
+                        _calculatedDob: dob.toISOString().split("T")[0], // Store actual DOB for submission
+                      });
+                    }
+                  }}
+                  required
+                />
+              )}
             </div>
 
             <div className="grid grid-cols-2 gap-2">

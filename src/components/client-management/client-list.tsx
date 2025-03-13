@@ -20,7 +20,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Search, Eye, FileText, Plus } from "lucide-react";
+import { Search, Eye, FileText, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
 interface Client {
@@ -37,11 +37,16 @@ interface Client {
 
 interface ClientListProps {
   onSelectClient: (clientId: string) => void;
+  onDeleteClient?: (clientId: string) => void;
 }
 
-export function ClientList({ onSelectClient }: ClientListProps) {
+export function ClientList({
+  onSelectClient,
+  onDeleteClient,
+}: ClientListProps) {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const supabase = createClient();
 
@@ -72,6 +77,44 @@ export function ClientList({ onSelectClient }: ClientListProps) {
   const filteredClients = clients.filter((client) =>
     client.full_name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
+
+  const handleDeleteClient = async (clientId: string) => {
+    if (confirm("Are you sure you want to delete this client?")) {
+      setIsDeleting(clientId);
+      try {
+        // First delete any dependents associated with this client
+        const { error: dependentsError } = await supabase
+          .from("dependents")
+          .delete()
+          .eq("client_id", clientId);
+
+        if (dependentsError) {
+          console.error("Error deleting dependents:", dependentsError);
+        }
+
+        // Then delete the client from the database
+        const { error } = await supabase
+          .from("clients")
+          .delete()
+          .eq("id", clientId);
+
+        if (error) throw error;
+
+        // Update the local state
+        setClients(clients.filter((client) => client.id !== clientId));
+
+        // Call the parent component's onDeleteClient if provided
+        if (onDeleteClient) {
+          onDeleteClient(clientId);
+        }
+      } catch (error) {
+        console.error("Error deleting client:", error);
+        alert("Failed to delete client. Please try again.");
+      } finally {
+        setIsDeleting(null);
+      }
+    }
+  };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
@@ -186,6 +229,19 @@ export function ClientList({ onSelectClient }: ClientListProps) {
                       </Button>
                       <Button variant="ghost" size="icon">
                         <FileText className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteClient(client.id)}
+                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                        disabled={isDeleting === client.id}
+                      >
+                        {isDeleting === client.id ? (
+                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-red-500 border-t-transparent" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
                       </Button>
                     </div>
                   </TableCell>

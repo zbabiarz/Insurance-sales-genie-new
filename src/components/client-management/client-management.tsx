@@ -7,6 +7,13 @@ import { ClientDetail } from "./client-detail";
 export function ClientManagement() {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
+  const handleDeleteClient = (clientId: string) => {
+    // If the deleted client is currently selected, go back to the list view
+    if (selectedClientId === clientId) {
+      setSelectedClientId(null);
+    }
+  };
+
   return (
     <div>
       {selectedClientId ? (
@@ -15,7 +22,10 @@ export function ClientManagement() {
           onBack={() => setSelectedClientId(null)}
         />
       ) : (
-        <ClientList onSelectClient={setSelectedClientId} />
+        <ClientList
+          onSelectClient={setSelectedClientId}
+          onDeleteClient={handleDeleteClient}
+        />
       )}
     </div>
   );

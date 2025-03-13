@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowUpDown, Search, X } from "lucide-react";
+import { ArrowUpDown, Search, X, ChevronDown, ChevronUp } from "lucide-react";
 
 interface InsurancePlan {
   id: string;
@@ -31,6 +31,7 @@ interface InsurancePlan {
   disqualifying_health_conditions?: string[];
   disqualifying_medications?: string[];
   eligibility_status?: "eligible" | "potential";
+  isExpanded?: boolean;
 }
 
 interface InsurancePlansTableProps {
@@ -44,6 +45,9 @@ export function InsurancePlansTable({ plans }: InsurancePlansTableProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [eligibilityFilter, setEligibilityFilter] = useState<string>("all");
+  const [expandedPlans, setExpandedPlans] = useState<Record<string, boolean>>(
+    {},
+  );
 
   // Get unique categories for filter
   const categories = Array.from(
@@ -57,6 +61,13 @@ export function InsurancePlansTable({ plans }: InsurancePlansTableProps) {
       setSortField(field);
       setSortDirection("asc");
     }
+  };
+
+  const togglePlanExpansion = (planId: string) => {
+    setExpandedPlans((prev) => ({
+      ...prev,
+      [planId]: !prev[planId],
+    }));
   };
 
   const filteredPlans = plans
@@ -262,28 +273,175 @@ export function InsurancePlansTable({ plans }: InsurancePlansTableProps) {
                 </TableHeader>
                 <TableBody>
                   {eligiblePlans.map((plan) => (
-                    <TableRow key={plan.id} className="bg-green-50/30">
-                      <TableCell className="font-medium">
-                        {plan.company_name}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div>{plan.product_name}</div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {plan.product_benefits}
+                    <>
+                      <TableRow key={plan.id} className="bg-green-50/30">
+                        <TableCell className="font-medium">
+                          {plan.company_name}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div>{plan.product_name}</div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {plan.product_benefits}
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{plan.product_category}</TableCell>
-                      <TableCell className="text-right">
-                        ${plan.product_price.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm">
-                          See More
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                        <TableCell>{plan.product_category}</TableCell>
+                        <TableCell className="text-right">
+                          ${plan.product_price.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => togglePlanExpansion(plan.id)}
+                            className="flex items-center gap-1"
+                          >
+                            {expandedPlans[plan.id] ? (
+                              <>
+                                Hide Details
+                                <ChevronUp className="h-3 w-3 ml-1" />
+                              </>
+                            ) : (
+                              <>
+                                See More
+                                <ChevronDown className="h-3 w-3 ml-1" />
+                              </>
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      {expandedPlans[plan.id] && (
+                        <TableRow className="bg-green-50/10">
+                          <TableCell colSpan={5} className="p-4">
+                            <div className="bg-white p-4 rounded-md border border-green-100 shadow-sm">
+                              <h4 className="font-medium text-lg mb-3">
+                                {plan.product_name} Details
+                              </h4>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                  <h5 className="font-medium text-sm mb-2">
+                                    Plan Information
+                                  </h5>
+                                  <ul className="space-y-2 text-sm">
+                                    <li>
+                                      <span className="font-medium">
+                                        Provider:
+                                      </span>{" "}
+                                      {plan.company_name}
+                                    </li>
+                                    <li>
+                                      <span className="font-medium">
+                                        Category:
+                                      </span>{" "}
+                                      {plan.product_category}
+                                    </li>
+                                    <li>
+                                      <span className="font-medium">
+                                        Monthly Premium:
+                                      </span>{" "}
+                                      ${plan.product_price.toFixed(2)}
+                                    </li>
+                                    <li>
+                                      <span className="font-medium">
+                                        Annual Cost:
+                                      </span>{" "}
+                                      ${(plan.product_price * 12).toFixed(2)}
+                                    </li>
+                                  </ul>
+                                </div>
+
+                                <div>
+                                  <h5 className="font-medium text-sm mb-2">
+                                    Coverage Details
+                                  </h5>
+                                  <p className="text-sm mb-2">
+                                    {plan.product_benefits}
+                                  </p>
+
+                                  {plan.product_category === "Health" && (
+                                    <div className="mt-3">
+                                      <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                        Includes Preventive Care
+                                      </span>
+                                      <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2">
+                                        Network: PPO
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {plan.product_category === "Dental" && (
+                                    <div className="mt-3">
+                                      <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                        Includes Orthodontics
+                                      </span>
+                                      <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2">
+                                        No Waiting Period
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {plan.product_category === "Vision" && (
+                                    <div className="mt-3">
+                                      <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                        Includes Designer Frames
+                                      </span>
+                                      <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2">
+                                        Annual Eye Exam
+                                      </span>
+                                    </div>
+                                  )}
+
+                                  {plan.product_category === "Life" && (
+                                    <div className="mt-3">
+                                      <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                        Guaranteed Issue
+                                      </span>
+                                      <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2">
+                                        Level Premiums
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="mt-4">
+                                <h5 className="font-medium text-sm mb-2">
+                                  Additional Benefits
+                                </h5>
+                                <ul className="list-disc pl-5 text-sm space-y-1">
+                                  <li>24/7 Customer Support</li>
+                                  <li>Online Account Management</li>
+                                  <li>Mobile App Access</li>
+                                  {plan.product_category === "Health" && (
+                                    <>
+                                      <li>Telehealth Services Included</li>
+                                      <li>Wellness Program Discounts</li>
+                                    </>
+                                  )}
+                                  {plan.product_category === "Life" && (
+                                    <>
+                                      <li>Accelerated Death Benefit</li>
+                                      <li>Waiver of Premium Option</li>
+                                    </>
+                                  )}
+                                </ul>
+                              </div>
+
+                              <div className="mt-4 flex justify-end">
+                                <Button
+                                  size="sm"
+                                  className="bg-teal-600 hover:bg-teal-700"
+                                >
+                                  Select This Plan
+                                </Button>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   ))}
                 </TableBody>
               </Table>
@@ -355,28 +513,141 @@ export function InsurancePlansTable({ plans }: InsurancePlansTableProps) {
                 </TableHeader>
                 <TableBody>
                   {potentialPlans.map((plan) => (
-                    <TableRow key={plan.id} className="bg-amber-50/30">
-                      <TableCell className="font-medium">
-                        {plan.company_name}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <div>{plan.product_name}</div>
-                          <div className="text-sm text-muted-foreground mt-1">
-                            {plan.product_benefits}
+                    <>
+                      <TableRow key={plan.id} className="bg-amber-50/30">
+                        <TableCell className="font-medium">
+                          {plan.company_name}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div>{plan.product_name}</div>
+                            <div className="text-sm text-muted-foreground mt-1">
+                              {plan.product_benefits}
+                            </div>
                           </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>{plan.product_category}</TableCell>
-                      <TableCell className="text-right">
-                        ${plan.product_price.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button variant="outline" size="sm">
-                          See More
-                        </Button>
-                      </TableCell>
-                    </TableRow>
+                        </TableCell>
+                        <TableCell>{plan.product_category}</TableCell>
+                        <TableCell className="text-right">
+                          ${plan.product_price.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => togglePlanExpansion(plan.id)}
+                            className="flex items-center gap-1"
+                          >
+                            {expandedPlans[plan.id] ? (
+                              <>
+                                Hide Details
+                                <ChevronUp className="h-3 w-3 ml-1" />
+                              </>
+                            ) : (
+                              <>
+                                See More
+                                <ChevronDown className="h-3 w-3 ml-1" />
+                              </>
+                            )}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                      {expandedPlans[plan.id] && (
+                        <TableRow className="bg-amber-50/10">
+                          <TableCell colSpan={5} className="p-4">
+                            <div className="bg-white p-4 rounded-md border border-amber-100 shadow-sm">
+                              <h4 className="font-medium text-lg mb-3">
+                                {plan.product_name} Details
+                              </h4>
+
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                                <div>
+                                  <h5 className="font-medium text-sm mb-2">
+                                    Plan Information
+                                  </h5>
+                                  <ul className="space-y-2 text-sm">
+                                    <li>
+                                      <span className="font-medium">
+                                        Provider:
+                                      </span>{" "}
+                                      {plan.company_name}
+                                    </li>
+                                    <li>
+                                      <span className="font-medium">
+                                        Category:
+                                      </span>{" "}
+                                      {plan.product_category}
+                                    </li>
+                                    <li>
+                                      <span className="font-medium">
+                                        Monthly Premium:
+                                      </span>{" "}
+                                      ${plan.product_price.toFixed(2)}
+                                    </li>
+                                    <li>
+                                      <span className="font-medium">
+                                        Annual Cost:
+                                      </span>{" "}
+                                      ${(plan.product_price * 12).toFixed(2)}
+                                    </li>
+                                  </ul>
+                                </div>
+
+                                <div>
+                                  <h5 className="font-medium text-sm mb-2">
+                                    Coverage Details
+                                  </h5>
+                                  <p className="text-sm mb-2">
+                                    {plan.product_benefits}
+                                  </p>
+
+                                  {plan.product_category === "Health" && (
+                                    <div className="mt-3">
+                                      <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                                        Includes Preventive Care
+                                      </span>
+                                      <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-1 rounded-full ml-2">
+                                        Network: PPO
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="mt-4 bg-amber-50 p-3 rounded-md border border-amber-200">
+                                <h5 className="font-medium text-sm mb-2 text-amber-800">
+                                  Qualification Requirements
+                                </h5>
+                                <p className="text-sm text-amber-800">
+                                  You may qualify for this plan with the
+                                  following adjustments:
+                                </p>
+                                <ul className="list-disc pl-5 text-sm space-y-1 text-amber-800 mt-2">
+                                  <li>
+                                    Remove certain health conditions from your
+                                    profile
+                                  </li>
+                                  <li>
+                                    Provide additional medical documentation
+                                  </li>
+                                  <li>
+                                    Consider a slightly higher deductible option
+                                  </li>
+                                </ul>
+                              </div>
+
+                              <div className="mt-4 flex justify-end">
+                                <Button
+                                  size="sm"
+                                  className="bg-amber-600 hover:bg-amber-700"
+                                >
+                                  Check Eligibility
+                                </Button>
+                              </div>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </>
                   ))}
                 </TableBody>
               </Table>
@@ -444,28 +715,108 @@ export function InsurancePlansTable({ plans }: InsurancePlansTableProps) {
               </TableHeader>
               <TableBody>
                 {otherPlans.map((plan) => (
-                  <TableRow key={plan.id}>
-                    <TableCell className="font-medium">
-                      {plan.company_name}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div>{plan.product_name}</div>
-                        <div className="text-sm text-muted-foreground mt-1">
-                          {plan.product_benefits}
+                  <>
+                    <TableRow key={plan.id}>
+                      <TableCell className="font-medium">
+                        {plan.company_name}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div>{plan.product_name}</div>
+                          <div className="text-sm text-muted-foreground mt-1">
+                            {plan.product_benefits}
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{plan.product_category}</TableCell>
-                    <TableCell className="text-right">
-                      ${plan.product_price.toFixed(2)}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="outline" size="sm">
-                        See More
-                      </Button>
-                    </TableCell>
-                  </TableRow>
+                      </TableCell>
+                      <TableCell>{plan.product_category}</TableCell>
+                      <TableCell className="text-right">
+                        ${plan.product_price.toFixed(2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => togglePlanExpansion(plan.id)}
+                          className="flex items-center gap-1"
+                        >
+                          {expandedPlans[plan.id] ? (
+                            <>
+                              Hide Details
+                              <ChevronUp className="h-3 w-3 ml-1" />
+                            </>
+                          ) : (
+                            <>
+                              See More
+                              <ChevronDown className="h-3 w-3 ml-1" />
+                            </>
+                          )}
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    {expandedPlans[plan.id] && (
+                      <TableRow>
+                        <TableCell colSpan={5} className="p-4">
+                          <div className="bg-white p-4 rounded-md border shadow-sm">
+                            <h4 className="font-medium text-lg mb-3">
+                              {plan.product_name} Details
+                            </h4>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                              <div>
+                                <h5 className="font-medium text-sm mb-2">
+                                  Plan Information
+                                </h5>
+                                <ul className="space-y-2 text-sm">
+                                  <li>
+                                    <span className="font-medium">
+                                      Provider:
+                                    </span>{" "}
+                                    {plan.company_name}
+                                  </li>
+                                  <li>
+                                    <span className="font-medium">
+                                      Category:
+                                    </span>{" "}
+                                    {plan.product_category}
+                                  </li>
+                                  <li>
+                                    <span className="font-medium">
+                                      Monthly Premium:
+                                    </span>{" "}
+                                    ${plan.product_price.toFixed(2)}
+                                  </li>
+                                  <li>
+                                    <span className="font-medium">
+                                      Annual Cost:
+                                    </span>{" "}
+                                    ${(plan.product_price * 12).toFixed(2)}
+                                  </li>
+                                </ul>
+                              </div>
+
+                              <div>
+                                <h5 className="font-medium text-sm mb-2">
+                                  Coverage Details
+                                </h5>
+                                <p className="text-sm mb-2">
+                                  {plan.product_benefits}
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="mt-4 flex justify-end">
+                              <Button
+                                size="sm"
+                                className="bg-gray-600 hover:bg-gray-700"
+                              >
+                                View Plan
+                              </Button>
+                            </div>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
                 ))}
               </TableBody>
             </Table>

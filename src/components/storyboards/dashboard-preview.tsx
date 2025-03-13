@@ -36,11 +36,11 @@ export default function DashboardPreview() {
         <DashboardStats />
 
         {/* Main Content Tabs */}
-        <Tabs defaultValue="clients" className="w-full">
+        <Tabs defaultValue="ai" className="w-full">
           <TabsList className="grid w-full grid-cols-4 mb-8">
-            <TabsTrigger value="clients" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              <span>Clients</span>
+            <TabsTrigger value="ai" className="flex items-center gap-2">
+              <BrainCircuit className="h-4 w-4" />
+              <span>AI Assistant</span>
             </TabsTrigger>
             <TabsTrigger value="intake" className="flex items-center gap-2">
               <ClipboardCheck className="h-4 w-4" />
@@ -50,9 +50,9 @@ export default function DashboardPreview() {
               <MessageSquareText className="h-4 w-4" />
               <span>Sales Calls</span>
             </TabsTrigger>
-            <TabsTrigger value="ai" className="flex items-center gap-2">
-              <BrainCircuit className="h-4 w-4" />
-              <span>AI Assistant</span>
+            <TabsTrigger value="clients" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              <span>Clients</span>
             </TabsTrigger>
           </TabsList>
 
