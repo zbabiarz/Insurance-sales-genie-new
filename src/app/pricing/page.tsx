@@ -24,10 +24,12 @@ export default async function Pricing() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {plans?.map((item: any) => (
-            <PricingCard key={item.id} item={item} user={user} />
-          ))}
+        <div className="flex justify-center max-w-5xl mx-auto">
+          {plans
+            ?.filter((item: any) => item.amount === 3700)
+            .map((item: any) => (
+              <PricingCard key={item.id} item={item} user={user} />
+            ))}
         </div>
       </div>
     </>

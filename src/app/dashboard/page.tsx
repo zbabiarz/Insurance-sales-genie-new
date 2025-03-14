@@ -1,5 +1,7 @@
+"use client";
+
 import DashboardNavbar from "@/components/dashboard-navbar";
-import { createClient } from "../../../supabase/server";
+import { createClient } from "../../../supabase/client";
 import { redirect } from "next/navigation";
 import { SubscriptionCheck } from "@/components/subscription-check";
 import { DashboardHeader } from "@/components/dashboard/dashboard-header";
@@ -23,16 +25,41 @@ import { ClientIntakePage } from "@/components/client-intake/client-intake-page"
 import { AIChat } from "@/components/ai-assistant/ai-chat";
 import { CallAnalyzerPage } from "@/components/sales-call/call-analyzer-page";
 import { ClientManagement } from "@/components/client-management/client-management";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-export default async function Dashboard() {
-  const supabase = await createClient();
+export default function Dashboard() {
+  const [user, setUser] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState("ai");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  useEffect(() => {
+    // Set active tab from URL parameter if available
+    if (tabParam && ["ai", "intake", "calls", "clients"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+
+    // Get user data
+    const fetchUser = async () => {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      if (data.user) {
+        setUser(data.user);
+      } else {
+        window.location.href = "/sign-in";
+      }
+    };
+
+    fetchUser();
+  }, [tabParam]);
 
   if (!user) {
-    return redirect("/sign-in");
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600"></div>
+      </div>
+    );
   }
 
   return (
@@ -44,13 +71,17 @@ export default async function Dashboard() {
           <DashboardHeader user={user} />
 
           {/* Quick Actions */}
-          <QuickActions />
+          <QuickActions onTabChange={setActiveTab} />
 
           {/* Stats Section */}
           <DashboardStats />
 
           {/* Main Content Tabs */}
-          <Tabs defaultValue="ai" className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <TabsList className="grid w-full grid-cols-4 mb-8">
               <TabsTrigger value="ai" className="flex items-center gap-2">
                 <BrainCircuit className="h-4 w-4" />
@@ -62,7 +93,7 @@ export default async function Dashboard() {
               </TabsTrigger>
               <TabsTrigger value="calls" className="flex items-center gap-2">
                 <MessageSquareText className="h-4 w-4" />
-                <span>Sales Calls</span>
+                <span>Analyzed Sales Calls</span>
               </TabsTrigger>
               <TabsTrigger value="clients" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
@@ -80,6 +111,15 @@ export default async function Dashboard() {
                     </CardDescription>
                   </CardHeader>
                 </Card>
+
+                {/* Info Banner */}
+                <div className="w-full bg-green-100 border border-green-300 rounded-lg p-4 text-green-800">
+                  <p className="text-center font-medium">
+                    Please make sure you include the company name, product name,
+                    and product type in all each of your questions and prompts
+                    to get the most accurate responses.
+                  </p>
+                </div>
 
                 {/* AI Chat Component */}
                 <div className="h-[500px]">

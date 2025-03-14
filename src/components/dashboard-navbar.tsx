@@ -44,7 +44,10 @@ export default function DashboardNavbar() {
                 clipRule="evenodd"
               />
             </svg>
-            Insurance Sales Genie
+            Insurance Sales Genie{" "}
+            <span className="text-xs align-top bg-teal-100 text-teal-800 px-1 py-0.5 rounded-md ml-1 font-medium">
+              beta
+            </span>
           </Link>
         </div>
         <div className="hidden md:flex items-center space-x-6">
